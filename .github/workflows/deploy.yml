@@ -1,0 +1,30 @@
+name: Deploying
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: executing remote ssh commands using ssh key
+        id: ssh_deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.NODE_SERVER_HOST }}
+          username: ${{ secrets.NODE_SERVER_PASSWORD }}
+          password: ${{ secrets.NODE_SERVER_USERNAME }}
+          script: | 
+            cd MakePoll-backend
+            git stash
+            git stash clear
+            git pull
+            bun install 
+            pm2 reload pm2.config.js --env production || pm2 start pm2.config.js --env production
