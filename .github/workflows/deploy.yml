@@ -7,18 +7,19 @@ on:
 
 jobs:
   deploy:
-    name: Deploy
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: executing remote ssh commands using ssh key
-        id: ssh_deploy
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.NODE_SERVER_HOST }}
-          username: ${{ secrets.NODE_SERVER_USERNAME }}
-          password: ${{ secrets.NODE_SERVER_PASSWORD  }}
-          script: sh deploy.sh
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Run deploy.sh on remote server via sshpass
+        run: |
+          sshpass -p "${{ secrets.NODE_SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.NODE_SERVER_USERNAME }}@${{ secrets.NODE_SERVER_HOST }} << 'EOF'
+          echo "Connexion OK"
+          cd MakePoll-backend
+          bash deploy.sh
+          EOF
