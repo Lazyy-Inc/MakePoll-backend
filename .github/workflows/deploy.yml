@@ -20,7 +20,5 @@ jobs:
         run: |
           sshpass -p "${{ secrets.NODE_SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.NODE_SERVER_USERNAME }}@${{ secrets.NODE_SERVER_HOST }} << 'EOF'
           echo "Connexion OK"
-          cd MakePoll-backend
-          pwd
-          bash deploy.sh
+          bash MakePoll-backend/deploy.sh
           EOF
