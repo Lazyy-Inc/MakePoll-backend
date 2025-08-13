@@ -1,21 +1,12 @@
-import * as jwt from 'jsonwebtoken'
-import {Index} from "../../index";
+import * as jwt from 'jsonwebtoken';
 
-export function generateJwt(type: 'token' | 'refreshToken', userId: number): string {
-    let expiresIn;
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = '24h';
 
-    if (type === 'token') {
-        expiresIn = '1d';
-    } else if (type === 'refreshToken') {
-        expiresIn = '30d';
-    } else {
-        throw new Error('Invalid token type');
-    }
+export const generateToken = (pollUuid: string): string => {
+    return jwt.sign({ pollUuid }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+};
 
-    const payload = {
-        userId: userId,
-        type: type
-    };
-
-    return jwt.sign(payload, Index.jwtKey, { expiresIn: expiresIn });
-}
+export const verifyToken = (token: string): { pollUuid: string } => {
+    return jwt.verify(token, JWT_SECRET) as { pollUuid: string };
+};
