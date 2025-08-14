@@ -1,27 +1,33 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import type { Question } from './question.entity';
+import { PollOption } from './poll-option.entity';
+import { Vote } from './vote.entity';
 
 @Entity()
 export class Poll {
     @PrimaryGeneratedColumn('uuid')
-    uuid: string;
+    id: string;
 
     @Column({ default: 1 })
     possibleAnswers: number;
 
-    @Column({ type: 'int', nullable: true })
-    pollDuration: number | null; // en heures
+    @Column({ default: false })
+    isCaptchaEnabled: boolean;
 
     @Column({ default: false })
-    hideResults: boolean;
+    areResultsHidden: boolean;
+
+    @Column({ type: 'timestamp', nullable: true })
+    endDate: Date | null;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date;
 
-    @OneToMany(
-        () => require('./question.entity').Question,
-        (question: Question) => question.poll,
-        { cascade: true }
-    )
-    questions: Question[];
+    @Column()
+    question: string;
+
+    @OneToMany(() => PollOption, (option) => option.poll, { cascade: true })
+    options: PollOption[];
+
+    @OneToMany(() => Vote, (vote) => vote.poll)
+    votes: Vote[];
 }

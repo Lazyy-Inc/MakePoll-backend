@@ -1,3 +1,4 @@
+import "./sentry/instrument";
 import express from 'express';
 import cors from 'cors';
 import { AppDataSource } from "./database/datasource";
@@ -7,8 +8,9 @@ import bodyParser from "body-parser";
 import { apiRouter } from "./routes/api.routes";
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import basicAuth from 'express-basic-auth';
-import { initializePollSockets } from './sockets/poll.socket'; // Ajout de l'import
+import { initializePollSockets } from './sockets/poll.socket';
+import { ErrorHandler } from "./utils/error/error-handler";
+import * as Sentry from '@sentry/node';
 
 export class Index {
     static jwtKey = process.env.JWT_SECRET;
@@ -46,36 +48,32 @@ export class Index {
                     Poll: {
                         type: 'object',
                         properties: {
-                            uuid: { type: 'string', format: 'uuid' },
+                            id: { type: 'string', format: 'uuid' },
                             possibleAnswers: { type: 'integer', example: 1 },
-                            pollDuration: { type: 'integer', nullable: true, description: 'Durée en heures' },
-                            hideResults: { type: 'boolean', example: false },
+                            isCaptchaEnabled: { type: 'boolean', example: false },
+                            areResultsHidden: { type: 'boolean', example: false },
+                            endDate: { type: 'string', format: 'date-time', nullable: true },
                             createdAt: { type: 'string', format: 'date-time' },
-                            questions: {
+                            question: { type: 'string' },
+                            options: {
                                 type: 'array',
-                                items: { $ref: '#/components/schemas/Question' }
+                                items: { $ref: '#/components/schemas/PollOption' }
                             }
                         }
                     },
-                    Question: {
-                        type: 'object',
-                        properties: {
-                            uuid: { type: 'string', format: 'uuid' },
-                            text: { type: 'string' },
-                            nbAnswers: { type: 'integer', example: 0 },
-                            poll: { $ref: '#/components/schemas/Poll' },
-                            answers: {
-                                type: 'array',
-                                items: { $ref: '#/components/schemas/Answer' }
-                            }
-                        }
-                    },
-                    Answer: {
+                    PollOption: {
                         type: 'object',
                         properties: {
                             id: { type: 'string', format: 'uuid' },
-                            answeredAt: { type: 'string', format: 'date-time' },
-                            question: { $ref: '#/components/schemas/Question' }
+                            text: { type: 'string' }
+                        }
+                    },
+                    Vote: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            poll: { $ref: '#/components/schemas/Poll' },
+                            option: { $ref: '#/components/schemas/PollOption' }
                         }
                     }
                 }
@@ -110,6 +108,14 @@ export class Index {
         console.log("Socket.io initialisé");
     }
 
+    static sentryConfig() {
+        Sentry.setupExpressErrorHandler(Index.app);
+
+        Index.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+            ErrorHandler(err, req, res)
+        });
+    }
+
     static startServer() {
         Index.server.listen(process.env.PORT, () => {
             console.log(`API démarrée sur le port ${process.env.PORT}....`);
@@ -122,6 +128,7 @@ export class Index {
         Index.swaggerConfig();
         Index.globalConfig();
         Index.routeConfig();
+        Index.sentryConfig()
 
         await Index.databaseConfig();
         Index.startServer();
